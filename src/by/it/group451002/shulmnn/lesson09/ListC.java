@@ -3,16 +3,21 @@ package by.it.group451002.shulmnn.lesson09;
 import java.util.*;
 
 public class ListC<E> implements List<E> {
+    private E[] elements;
+    private int size;
 
-    private Object[] elements = new Object[10];
-    private int size = 0;
+    @SuppressWarnings("unchecked")
+    public ListC() {
+        elements = (E[]) new Object[10];
+        size = 0;
+    }//
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < size; i++){
+        for (int i = 0; i < size; i++) {
             sb.append(elements[i]);
-            if(i < size-1) sb.append(", ");
+            if (i < size - 1) sb.append(", ");
         }
         sb.append("]");
         return sb.toString();
@@ -20,8 +25,8 @@ public class ListC<E> implements List<E> {
 
     @Override
     public boolean add(E e) {
-        if (elements.length == size){
-            elements = Arrays.copyOf(elements, (int) (elements.length * 1.5));
+        if (size == elements.length) {
+            elements = Arrays.copyOf(elements, elements.length * 2);
         }
         elements[size++] = e;
         return true;
@@ -29,13 +34,16 @@ public class ListC<E> implements List<E> {
 
     @Override
     public E remove(int index) {
-        Objects.checkIndex(index, size);
-        @SuppressWarnings("unchecked")
-        E oldValue = (E) elements[index];
-        int numMoved = size - index - 1;
-        if (numMoved > 0) System.arraycopy(elements, index+1, elements, index, numMoved);
-        elements[--size] = null;
-        return oldValue;
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException();
+        }
+        E removed = elements[index];
+        for (int i = index; i < size - 1; i++) {
+            elements[i] = elements[i + 1];
+        }
+        elements[size - 1] = null;
+        size--;
+        return removed;
     }
 
     @Override
@@ -45,62 +53,68 @@ public class ListC<E> implements List<E> {
 
     @Override
     public void add(int index, E element) {
-        Objects.checkIndex(index, size + 1);
-        if (elements.length == size){
-            elements = Arrays.copyOf(elements, (int) (elements.length * 1.5));
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException();
         }
-        System.arraycopy(elements, index, elements, index+1, size-index);
+        if (size == elements.length) {
+            elements = Arrays.copyOf(elements, elements.length * 2);
+        }
+        for (int i = size; i > index; i--) {
+            elements[i] = elements[i - 1];
+        }
         elements[index] = element;
         size++;
     }
 
     @Override
     public boolean remove(Object o) {
-        for (int i = 0; i < size; i++) {
-            if (Objects.equals(elements[i], o)) {
-                remove(i);
-                return true;
-            }
+        int index = indexOf(o);
+        if (index >= 0) {
+            remove(index);
+            return true;
         }
         return false;
     }
 
     @Override
     public E set(int index, E element) {
-        Objects.checkIndex(index, size);
-        @SuppressWarnings("unchecked")
-        E oldValue = (E) elements[index];
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException();
+        }
+        E old = elements[index];
         elements[index] = element;
-        return oldValue;
+        return old;
     }
-
 
     @Override
     public boolean isEmpty() {
         return size == 0;
     }
 
-
     @Override
     public void clear() {
-        Arrays.fill(elements, 0, size, null);
+        for (int i = 0; i < size; i++) {
+            elements[i] = null;
+        }
         size = 0;
     }
 
     @Override
     public int indexOf(Object o) {
         for (int i = 0; i < size; i++) {
-            if (Objects.equals(elements[i], o)) return i;
+            if (Objects.equals(o, elements[i])) {
+                return i;
+            }
         }
         return -1;
     }
 
     @Override
     public E get(int index) {
-        Objects.checkIndex(index, size);
-        @SuppressWarnings("unchecked")
-        E value = (E) elements[index];
-        return value;
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException();
+        }
+        return elements[index];
     }
 
     @Override
@@ -111,7 +125,7 @@ public class ListC<E> implements List<E> {
     @Override
     public int lastIndexOf(Object o) {
         for (int i = size - 1; i >= 0; i--) {
-            if (Objects.equals(elements[i], o)) {
+            if (Objects.equals(o, elements[i])) {
                 return i;
             }
         }
@@ -120,8 +134,8 @@ public class ListC<E> implements List<E> {
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        for (Object item : c) {
-            if (!contains(item)) {
+        for (Object o : c) {
+            if (!contains(o)) {
                 return false;
             }
         }
@@ -130,81 +144,72 @@ public class ListC<E> implements List<E> {
 
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        boolean changed = false;
-        for (E item : c) {
-            add(item);
-            changed = true;
+        boolean modified = false;
+        for (E e : c) {
+            if (add(e)) {
+                modified = true;
+            }
         }
-        return changed;
+        return modified;
     }
 
     @Override
     public boolean addAll(int index, Collection<? extends E> c) {
-        Objects.checkIndex(index, size + 1);
-        boolean changed = false;
-        for (E item : c) {
-            add(index++, item);
-            changed = true;
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException();
         }
-        return changed;
+        boolean modified = false;
+        for (E e : c) {
+            add(index++, e);
+            modified = true;
+        }
+        return modified;
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        boolean changed = false;
+        boolean modified = false;
         for (int i = 0; i < size; ) {
             if (c.contains(elements[i])) {
                 remove(i);
-                changed = true;
+                modified = true;
             } else {
                 i++;
             }
         }
-        return changed;
+        return modified;
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        boolean changed = false;
+        boolean modified = false;
         for (int i = 0; i < size; ) {
             if (!c.contains(elements[i])) {
                 remove(i);
-                changed = true;
+                modified = true;
             } else {
                 i++;
             }
         }
-        return changed;
+        return modified;
     }
+
+    // Опциональные методы
+    @Override
+    public List<E> subList(int fromIndex, int toIndex) { return null; }
 
     @Override
-    public List<E> subList(int fromIndex, int toIndex) {
-        return null;
-    }
+    public ListIterator<E> listIterator(int index) { return null; }
 
     @Override
-    public ListIterator<E> listIterator(int index) {
-        return null;
-    }
+    public ListIterator<E> listIterator() { return null; }
 
     @Override
-    public ListIterator<E> listIterator() {
-        return null;
-    }
+    public <T> T[] toArray(T[] a) { return null; }
 
     @Override
-    public <T> T[] toArray(T[] a) {
-        return null;
-    }
+    public Object[] toArray() { return new Object[0]; }
 
     @Override
-    public Object[] toArray() {
-        return new Object[0];
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        return null;
-    }
-
+    public Iterator<E> iterator() { return null; }
 }
